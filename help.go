@@ -2,6 +2,8 @@ package main
 
 import (
 	"strings"
+
+	"github.com/mattn/go-runewidth"
 )
 
 func renderHelp() string {
@@ -10,52 +12,74 @@ func renderHelp() string {
 	dim := stDim.Render
 	ac := stAccent.Render
 
+	section := func(title string, rows [][2]string) {
+		b.WriteString("\n  " + h(title) + "\n")
+		w := 0
+		for _, r := range rows {
+			if rw := runewidth.StringWidth(r[0]); rw > w {
+				w = rw
+			}
+		}
+		for _, r := range rows {
+			if r[1] == "" {
+				b.WriteString("    " + dim(r[0]) + "\n")
+				continue
+			}
+			b.WriteString("    " + ac(r[0]) + strings.Repeat(" ", w-runewidth.StringWidth(r[0])) + dim("  "+r[1]) + "\n")
+		}
+	}
+
 	b.WriteString("\n")
 	b.WriteString("  " + h("tod") + dim(" — a fast, beautiful to-do list for your terminal") + "\n")
 
-	b.WriteString("\n  " + h("Usage") + "\n")
-	b.WriteString("    " + ac("tod") + dim("                        interactive mode (plain list when piped)") + "\n")
-	b.WriteString("    " + ac("tod add") + dim(" <text> [meta]     add a task") + "\n")
-	b.WriteString("    " + ac("tod ls") + dim(" [filters]         list tasks") + "\n")
-	b.WriteString("    " + ac("tod done") + dim(" <id>...           complete tasks (ranges ok: 1-3)") + "\n")
-	b.WriteString("    " + ac("tod undone") + dim(" <id>...           reopen tasks") + "\n")
-	b.WriteString("    " + ac("tod rm") + dim(" <id>...           delete tasks") + "\n")
-	b.WriteString("    " + ac("tod edit") + dim(" <id> <changes>    edit text and metadata") + "\n")
-	b.WriteString("    " + ac("tod pri") + dim(" <id> <level>      set priority: high, medium, low, none") + "\n")
-	b.WriteString("    " + ac("tod due") + dim(" <id> <when>       set due date (none clears)") + "\n")
-	b.WriteString("    " + ac("tod search") + dim(" <query>           find tasks (same as: tod ls <query>)") + "\n")
-	b.WriteString("    " + ac("tod stats") + dim("                   your productivity dashboard") + "\n")
-	b.WriteString("    " + ac("tod undo") + dim(" / ") + ac("redo") + dim("          every change is undoable") + "\n")
-	b.WriteString("    " + ac("tod clear") + dim(" [--force]         remove completed tasks") + "\n")
-	b.WriteString("    " + ac("tod export") + dim("                  print all tasks as JSON") + "\n")
-	b.WriteString("    " + ac("tod completion") + dim(" <bash|zsh|fish>   shell completion script") + "\n")
-	b.WriteString("    " + ac("tod path") + dim(" / ") + ac("version") + dim(" / ") + ac("help") + "\n")
+	section("Usage", [][2]string{
+		{"tod", "interactive mode (plain list when piped)"},
+		{"tod add <text> [meta]", "add a task"},
+		{"tod ls [filters]", "list tasks"},
+		{"tod done <id>...", "complete tasks (ranges ok: 1-3)"},
+		{"tod undone <id>...", "reopen tasks"},
+		{"tod rm <id>...", "delete tasks"},
+		{"tod edit <id> <changes>", "edit text and metadata"},
+		{"tod pri <id> <level>", "set priority: high, medium, low, none"},
+		{"tod due <id> <when>", "set due date (none clears)"},
+		{"tod search <query>", "find tasks (same as: tod ls <query>)"},
+		{"tod stats", "your productivity dashboard"},
+		{"tod undo / redo", "every change is undoable"},
+		{"tod clear [--force]", "remove completed tasks"},
+		{"tod export", "print all tasks as JSON"},
+		{"tod completion <shell>", "bash, zsh, or fish"},
+		{"tod path / version / help", "data locations, version, this page"},
+	})
 
-	b.WriteString("\n  " + h("Metadata") + dim(" — inline, in any order, when adding or editing") + "\n")
-	b.WriteString("    " + ac("!high !med !low") + dim("     priority (or ") + ac("!!! !! !") + dim(")") + "\n")
-	b.WriteString("    " + ac("@tag") + dim("                  tag (repeatable)") + "\n")
-	b.WriteString("    " + ac("#project") + dim("              project") + "\n")
-	b.WriteString("    " + ac("due:<when>") + dim("            today, tomorrow, fri, +3d, +2w, 2026-09-01") + "\n")
-	b.WriteString("    " + ac("every:<span>") + dim("          day, weekday, week, month, mon, 3d, 2w") + "\n")
+	section("Metadata — inline, in any order, when adding or editing", [][2]string{
+		{"!high !med !low", "priority (or !!! !! !)"},
+		{"@tag", "tag (repeatable)"},
+		{"#project", "project"},
+		{"due:<when>", "today, tomorrow, fri, +3d, +2w, 2026-09-01"},
+		{"every:<span>", "day, weekday, week, month, mon, 3d, 2w"},
+	})
 
-	b.WriteString("\n  " + h("Filters") + dim(" — for ls and search") + "\n")
-	b.WriteString("    " + ac("--all -a") + dim("              include completed (last 10)") + "\n")
-	b.WriteString("    " + ac("--done -d") + dim("             completed only") + "\n")
-	b.WriteString("    " + ac("@tag  #project") + dim("        filter by tag or project") + "\n")
-	b.WriteString("    " + ac("--pri high") + dim("            filter by priority") + "\n")
-	b.WriteString("    " + ac("--plain") + dim("               ASCII output for scripts") + "\n")
+	section("Filters — for ls and search", [][2]string{
+		{"--all -a", "include completed (last 10)"},
+		{"--done -d", "completed only"},
+		{"@tag  #project", "filter by tag or project"},
+		{"--pri high", "filter by priority"},
+		{"--plain", "ASCII output for scripts"},
+	})
 
-	b.WriteString("\n  " + h("Examples") + "\n")
-	b.WriteString(dim(`    tod add "Water the plants" every:day`) + "\n")
-	b.WriteString(dim(`    tod add "Submit report" #work !high due:fri`) + "\n")
-	b.WriteString(dim(`    tod add "Buy milk" @groceries due:tomorrow`) + "\n")
-	b.WriteString(dim(`    tod done 1-3`) + "\n")
-	b.WriteString(dim(`    tod ls @home --all`) + "\n")
-	b.WriteString(dim(`    tod edit 2 "Buy oat milk instead" due:+1w`) + "\n")
+	section("Examples", [][2]string{
+		{`tod add "Water plants" every:day`, ""},
+		{`tod add "Submit report" '#work' '!!!' due:fri`, ""},
+		{`tod add "Buy milk" @groceries due:tomorrow`, ""},
+		{"tod done 1-3", ""},
+		{"tod ls @home --all", ""},
+		{`tod edit 2 "Buy oat milk" due:+1w`, ""},
+	})
 
-	b.WriteString("\n  " + h("Interactive keys") + "\n")
-	b.WriteString(dim("    space done · a add · e edit · d delete · u undo · / filter") + "\n")
-	b.WriteString(dim("    tab show all · 1/2/3 priority · t due today · T tomorrow · q quit") + "\n")
+	section("Interactive keys", [][2]string{
+		{"space a e d u /", "done · add · edit · delete · undo · filter"},
+		{"tab 1/2/3 t T q", "show all · priority · due today · tomorrow · quit"},
+	})
 
 	b.WriteString("\n  " + dim("Data lives in ") + ac("~/.tod") + dim(" (override with $TOD_HOME).") + "\n\n")
 	return b.String()
